@@ -702,7 +702,7 @@
     }
     /* In finetune mode: tracks are taller and expand instantly */
     .tv2-timeline.finetune-mode .tv2-tl-track.track-visible {
-        height: 44px;
+        height: 56px;
         transition: none;
         margin-bottom: 3px;
     }
@@ -710,11 +710,11 @@
         transition: none;
     }
     .tv2-timeline.finetune-mode .tv2-tl-segment {
-        top: 5px; bottom: 5px;
+        top: 6px; bottom: 6px;
     }
     /* Placeholder tracks (feature not enabled) — show position with empty state */
     .tv2-timeline.finetune-mode .tv2-tl-track.track-placeholder {
-        height: 44px;
+        height: 56px;
         opacity: 0.3;
         margin-bottom: 3px;
         overflow: visible;
@@ -858,7 +858,7 @@
     }
     .tv2-tl-segment.seg-active { animation: segPulse 0.5s ease-out; }
     .tv2-tl-seg-label {
-        font-size: 0.52rem; font-family: 'JetBrains Mono', monospace;
+        font-size: 0.58rem; font-family: 'JetBrains Mono', monospace;
         white-space: nowrap; opacity: 0.7;
     }
     .tv2-tl-segment--erase { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.35); color: #ef4444; }
@@ -896,7 +896,7 @@
         display: flex; flex-direction: column; gap: 2px;
     }
     .tv2-tl-track-sublane {
-        position: relative; height: 22px; flex-shrink: 0;
+        position: relative; height: 30px; flex-shrink: 0;
     }
 
     .tv2-tl-playhead {
@@ -1884,17 +1884,17 @@
         min-height: 36px; resize: vertical; line-height: 1.4;
     }
     .ft-inline-edit-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px;
+        display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px 6px;
     }
     .ft-inline-edit-field {
-        display: flex; align-items: center; gap: 4px;
+        display: flex; align-items: center; gap: 3px;
     }
     .ft-inline-edit-field label {
-        font-size: 0.58rem; color: var(--text-faint); min-width: 12px;
+        font-size: 0.58rem; color: var(--text-faint); min-width: 10px; flex-shrink: 0;
     }
     .ft-inline-edit-field input {
-        width: 40px; padding: 3px 4px;
-        font-size: 0.65rem; font-family: 'JetBrains Mono', monospace;
+        width: 100%; min-width: 0; padding: 4px 4px;
+        font-size: 0.68rem; font-family: 'JetBrains Mono', monospace;
         background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
         border-radius: 4px; color: var(--text-primary); outline: none;
         text-align: center;
