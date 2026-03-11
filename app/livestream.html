@@ -135,7 +135,7 @@
                     <button class="ls-topbar-btn" id="panelToggle" title="收起/展开片段面板">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M10 2V14" stroke="currentColor" stroke-width="1.2"/></svg>
                     </button>
-                    <button class="ev2-btn-export" id="exportBtn">
+                    <button class="ls-export-btn" id="exportBtn">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2V9M8 9L11 6M8 9L5 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 11V13C3 13.5523 3.44772 14 4 14H12C12.5523 14 13 13.5523 13 13V11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                         导出
                     </button>
@@ -178,7 +178,12 @@
                         </div>
                         <!-- 片段预览区 -->
                         <div class="ls-video-preview" id="previewArea">
-                            <div class="ls-preview-empty">
+                            <canvas class="ls-preview-canvas" id="previewCanvas" style="display:none;"></canvas>
+                            <div class="ls-preview-label" id="previewLabel" style="display:none;">
+                                <span class="ls-preview-label-title" id="previewTitle">片段 1</span>
+                                <span class="ls-preview-label-time" id="previewTime">00:00:05 — 00:00:15</span>
+                            </div>
+                            <div class="ls-preview-empty" id="previewEmpty">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 5L19 12L8 19V5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
                                 <span>选择片段以预览</span>
                             </div>
@@ -639,7 +644,7 @@
                     '<span class="ls-clip-time">' + formatTime(clip.start) + ' — ' + formatTime(clip.end) + '</span>' +
                 '</div>' +
                 '<div class="ls-clip-actions">' +
-                    '<button class="ls-clip-btn" title="预览"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 2L10 6L3 10V2Z" fill="currentColor"/></svg></button>' +
+                    '<button class="ls-clip-btn ls-clip-preview" title="预览" data-id="' + clip.id + '"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 2L10 6L3 10V2Z" fill="currentColor"/></svg></button>' +
                     '<button class="ls-clip-btn ls-clip-delete" title="删除" data-id="' + clip.id + '"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>' +
                 '</div>';
 
@@ -648,6 +653,14 @@
             // Draw thumbnail
             var miniCanvas = card.querySelector('.ls-clip-canvas');
             drawMiniThumb(miniCanvas);
+
+            // Preview handler
+            card.querySelector('.ls-clip-preview').addEventListener('click', function() {
+                var id = parseInt(this.dataset.id);
+                var c = clips.find(function(x) { return x.id === id; });
+                if (!c) return;
+                showPreview(c, clip.id + 1);
+            });
 
             // Delete handler
             card.querySelector('.ls-clip-delete').addEventListener('click', function() {
@@ -680,6 +693,74 @@
             ctx.lineTo(50, 44);
             ctx.closePath();
             ctx.fill();
+        }
+
+        // === Preview ===
+        function showPreview(clip, num) {
+            var previewCanvas = document.getElementById('previewCanvas');
+            var previewEmpty = document.getElementById('previewEmpty');
+            var previewLabel = document.getElementById('previewLabel');
+            var previewTitle = document.getElementById('previewTitle');
+            var previewTime = document.getElementById('previewTime');
+
+            previewEmpty.style.display = 'none';
+            previewCanvas.style.display = 'block';
+            previewLabel.style.display = 'flex';
+            previewTitle.textContent = '片段 ' + num;
+            previewTime.textContent = formatTime(clip.start) + ' — ' + formatTime(clip.end);
+
+            // Draw preview content
+            var area = document.getElementById('previewArea');
+            var w = area.clientWidth;
+            var h = area.clientHeight;
+            previewCanvas.width = w * 2;
+            previewCanvas.height = h * 2;
+            previewCanvas.style.width = '100%';
+            previewCanvas.style.height = '100%';
+
+            var ctx = previewCanvas.getContext('2d');
+            // Background
+            var grad = ctx.createLinearGradient(0, 0, previewCanvas.width, previewCanvas.height);
+            grad.addColorStop(0, '#0f0a1e');
+            grad.addColorStop(0.3, '#1a1030');
+            grad.addColorStop(0.7, '#0d1520');
+            grad.addColorStop(1, '#0f0a1e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Simulated particles
+            for (var i = 0; i < 15; i++) {
+                var px = Math.random() * previewCanvas.width;
+                var py = Math.random() * previewCanvas.height;
+                var pr = Math.random() * 40 + 10;
+                var grd = ctx.createRadialGradient(px, py, 0, px, py, pr);
+                grd.addColorStop(0, 'hsla(' + (300 + Math.random() * 60) + ', 60%, 50%, 0.08)');
+                grd.addColorStop(1, 'hsla(0, 0%, 0%, 0)');
+                ctx.fillStyle = grd;
+                ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+            }
+
+            // Play icon
+            var cx = previewCanvas.width / 2;
+            var cy = previewCanvas.height / 2;
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.beginPath();
+            ctx.moveTo(cx - 8, cy - 12);
+            ctx.lineTo(cx + 14, cy);
+            ctx.lineTo(cx - 8, cy + 12);
+            ctx.closePath();
+            ctx.fill();
+
+            // Highlight active card
+            document.querySelectorAll('.ls-clip-card').forEach(function(c) {
+                c.classList.remove('previewing');
+            });
+            var activeCard = document.querySelector('.ls-clip-card[data-id="' + clip.id + '"]');
+            if (activeCard) activeCard.classList.add('previewing');
         }
 
         // === Select All / Clear All ===
@@ -1011,6 +1092,28 @@
     }
     .ls-stop-btn:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); }
 
+    /* 导出按钮 — 对齐 ev2-btn-export */
+    .ls-export-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 18px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #fff;
+        background: linear-gradient(135deg, #a855f7, #6366f1);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(168,85,247,0.2);
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+    .ls-export-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0 30px rgba(168,85,247,0.35);
+    }
+
     /* === 主体布局 === */
     .ls-main {
         flex: 1;
@@ -1035,7 +1138,7 @@
         background: rgba(255,255,255,0.03);
     }
     .ls-video-primary {
-        flex: 2;
+        flex: 1;
         position: relative;
         background: #0a0a18;
         overflow: hidden;
@@ -1052,8 +1155,38 @@
         align-items: center;
         justify-content: center;
         background: #08080f;
-        min-width: 200px;
-        max-width: 380px;
+        position: relative;
+        overflow: hidden;
+    }
+    .ls-preview-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+    }
+    .ls-preview-label {
+        position: absolute;
+        bottom: 12px; left: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 12px;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(8px);
+        border-radius: 8px;
+        z-index: 5;
+    }
+    .ls-preview-label-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+    .ls-preview-label-time {
+        font-size: 0.6rem;
+        font-family: 'JetBrains Mono', monospace;
+        color: rgba(255,255,255,0.5);
     }
     .ls-preview-empty {
         display: flex;
@@ -1341,11 +1474,12 @@
         flex-shrink: 0;
         background: rgba(8,8,14,0.95);
         border-top: 1px solid rgba(255,255,255,0.04);
+        padding: 0 0 4px;
     }
     .ls-tl-ruler {
         display: flex;
         position: relative;
-        height: 20px;
+        height: 24px;
         border-bottom: 1px solid rgba(255,255,255,0.04);
         overflow: hidden;
     }
@@ -1361,11 +1495,11 @@
         position: absolute;
         left: 0; top: 0;
         width: 1px;
-        height: 6px;
-        background: rgba(255,255,255,0.12);
+        height: 8px;
+        background: rgba(255,255,255,0.15);
     }
     .ls-tl-tick span {
-        font-size: 0.52rem;
+        font-size: 0.55rem;
         font-family: 'JetBrains Mono', monospace;
         color: var(--text-dim);
         padding-left: 4px;
@@ -1373,8 +1507,9 @@
     }
     .ls-tl-track {
         position: relative;
-        height: 52px;
+        height: 80px;
         overflow: hidden;
+        margin: 0 8px;
     }
     .ls-tl-frames {
         display: flex;
@@ -1645,16 +1780,42 @@
         border-color: rgba(239,68,68,0.2);
         background: rgba(239,68,68,0.08);
     }
+    .ls-clip-preview:hover {
+        color: #a855f7;
+        border-color: rgba(168,85,247,0.2);
+        background: rgba(168,85,247,0.08);
+    }
+    .ls-clip-card.previewing {
+        border-color: rgba(168,85,247,0.35);
+        background: rgba(168,85,247,0.06);
+    }
+
+    /* 预览区信号标识 */
+    .ls-video-preview .ls-source-badge-preview {
+        position: absolute;
+        top: 12px; left: 12px;
+        display: flex; align-items: center; gap: 6px;
+        padding: 4px 10px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: rgba(168,85,247,0.8);
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(8px);
+        border-radius: 6px;
+        border: 1px solid rgba(168,85,247,0.2);
+    }
 
     /* === 响应式 === */
     @media (max-width: 1100px) {
         .ls-aside { width: 280px; }
-        .ls-video-preview { display: none; }
+    }
+    @media (max-width: 900px) {
+        .ls-video-area { flex-direction: column; }
+        .ls-video-preview { min-height: 160px; }
     }
     @media (max-width: 800px) {
         .ls-main { flex-direction: column; }
         .ls-aside { width: 100%; max-height: 35vh; border-left: none; border-top: 1px solid rgba(255,255,255,0.05); }
-        .ls-video-preview { display: none; }
     }
     </style>
 </body>
