@@ -8613,15 +8613,6 @@
             });
         });
 
-        // 点击上传框内的导入按钮时不触发文件选择
-        var uploadZone = document.getElementById('tv2UploadZone');
-        if (uploadZone) {
-            uploadZone.addEventListener('click', function(e) {
-                if (e.target.closest('#tv2ImportTaskBtn')) {
-                    e.stopPropagation();
-                }
-            }, true);
-        }
     })();
     (function() {
         const landing = document.getElementById('tv2Landing');
