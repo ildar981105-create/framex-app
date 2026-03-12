@@ -603,14 +603,6 @@
             var pct = (clip.start % total) / total * 100;
             var widthPct = clip.duration / total * 100;
 
-            // 在旧的markers层上也保留标记（帧缩略图轨道上的半透明覆盖）
-            var m = document.createElement('div');
-            m.className = 'ls-tl-marker';
-            m.style.left = pct + '%';
-            m.style.width = Math.max(widthPct, 0.5) + '%';
-            m.title = '片段 ' + (clip.id + 1) + ' (' + formatTime(clip.start) + ' – ' + formatTime(clip.end) + ')';
-            tlMarkers.appendChild(m);
-
             // 在手动剪辑轨道上添加片段块（可点击预览）
             var seg = document.createElement('div');
             seg.className = 'ls-tl-seg ls-tl-seg--manual';
@@ -1573,7 +1565,7 @@
 
     .ls-tl-track {
         position: relative;
-        height: 100px;
+        height: 80px;
         overflow: hidden;
     }
     .ls-tl-frames {
@@ -1623,7 +1615,7 @@
     /* === 子轨道（自动 / 手动） === */
     .ls-tl-sub-track {
         position: relative;
-        height: 40px;
+        height: 80px;
         border-top: 1px solid rgba(255,255,255,0.04);
     }
     .ls-tl-sub-label {
