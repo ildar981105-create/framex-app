@@ -24,12 +24,6 @@
         </div>
     </aside>
 
-    <!-- 全屏模式返回按钮 -->
-    <button class="back-to-nav" id="backBtn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        返回
-    </button>
-
     <main class="main-content" id="mainContent">
         <!-- ===== 初始状态：链接输入 ===== -->
         <div id="landingView">
@@ -302,7 +296,6 @@
         const workView = document.getElementById('workView');
         const startBtn = document.getElementById('startLiveBtn');
         const stopBtn = document.getElementById('stopBtn');
-        const backBtn = document.getElementById('backBtn');
         const liveInput = document.getElementById('liveUrlInput');
         const configToggle = document.getElementById('configToggle');
         const configPanel = document.getElementById('configPanel');
@@ -349,7 +342,6 @@
         // === Start / Stop ===
         if (startBtn) startBtn.addEventListener('click', startMonitor);
         if (stopBtn) stopBtn.addEventListener('click', stopMonitor);
-        if (backBtn) backBtn.addEventListener('click', stopMonitor);
 
         function startMonitor() {
             isMonitoring = true;
