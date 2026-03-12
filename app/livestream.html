@@ -243,16 +243,22 @@
                         <div class="ls-tl-tracks-wrap">
                             <!-- 帧缩略图轨道 -->
                             <div class="ls-tl-track" id="tlTrack">
-                                <!-- 帧缩略图 -->
-                                <div class="ls-tl-frames" id="tlFrames"></div>
-                                <!-- 旧版片段标记（兼容） -->
-                                <div class="ls-tl-markers" id="tlMarkers"></div>
-                                <!-- 入点/出点选区 -->
-                                <div class="ls-tl-selection" id="tlSelection" style="display:none;"></div>
+                                <div class="ls-tl-track-label">
+                                    <span class="ls-tl-sub-dot ls-tl-sub-dot--source"></span>
+                                    源
+                                </div>
+                                <div class="ls-tl-track-body">
+                                    <!-- 帧缩略图 -->
+                                    <div class="ls-tl-frames" id="tlFrames"></div>
+                                    <!-- 旧版片段标记（兼容） -->
+                                    <div class="ls-tl-markers" id="tlMarkers"></div>
+                                    <!-- 入点/出点选区 -->
+                                    <div class="ls-tl-selection" id="tlSelection" style="display:none;"></div>
+                                </div>
                             </div>
                             <!-- 自动剪辑轨道 -->
                             <div class="ls-tl-sub-track" id="autoClipTrack">
-                                <div class="ls-tl-sub-label">
+                                <div class="ls-tl-track-label">
                                     <span class="ls-tl-sub-dot ls-tl-sub-dot--auto"></span>
                                     自动
                                 </div>
@@ -260,7 +266,7 @@
                             </div>
                             <!-- 手动剪辑轨道 -->
                             <div class="ls-tl-sub-track" id="manualClipTrack">
-                                <div class="ls-tl-sub-label">
+                                <div class="ls-tl-track-label">
                                     <span class="ls-tl-sub-dot ls-tl-sub-dot--manual"></span>
                                     手动
                                 </div>
@@ -406,7 +412,8 @@
                 var pct = Math.min((elapsed % 600) / 600 * 100, 100);
                 progressFill.style.width = pct + '%';
                 progressPlayhead.style.left = pct + '%';
-                tlPlayhead.style.left = pct + '%';
+                var contentPct = pct / 100;
+                tlPlayhead.style.left = 'calc(48px + (100% - 48px) * ' + contentPct + ')';
             }, 1000);
 
             // Danmaku
@@ -1533,6 +1540,7 @@
         height: 24px;
         border-bottom: 1px solid rgba(255,255,255,0.04);
         overflow: hidden;
+        margin-left: 56px;
     }
     .ls-tl-tick {
         position: absolute;
@@ -1564,8 +1572,14 @@
     }
 
     .ls-tl-track {
-        position: relative;
+        display: flex;
         height: 80px;
+        overflow: hidden;
+    }
+    .ls-tl-track-body {
+        position: relative;
+        flex: 1;
+        min-width: 0;
         overflow: hidden;
     }
     .ls-tl-frames {
@@ -1614,37 +1628,41 @@
 
     /* === 子轨道（自动 / 手动） === */
     .ls-tl-sub-track {
-        position: relative;
+        display: flex;
         height: 80px;
         border-top: 1px solid rgba(255,255,255,0.04);
     }
-    .ls-tl-sub-label {
-        position: absolute;
-        left: 4px;
-        top: 0;
-        height: 100%;
+
+    /* 统一轨道标题列 */
+    .ls-tl-track-label {
+        width: 48px;
+        flex-shrink: 0;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 4px;
+        justify-content: center;
+        gap: 5px;
         font-size: 0.58rem;
         font-weight: 600;
         color: var(--text-faint);
         letter-spacing: 0.02em;
         user-select: none;
-        z-index: 5;
-        pointer-events: none;
+        border-right: 1px solid rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.015);
     }
     .ls-tl-sub-dot {
         width: 6px; height: 6px;
         border-radius: 50%;
         flex-shrink: 0;
     }
+    .ls-tl-sub-dot--source { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.4); }
     .ls-tl-sub-dot--auto { background: #06b6d4; box-shadow: 0 0 6px rgba(6,182,212,0.4); }
     .ls-tl-sub-dot--manual { background: #a855f7; box-shadow: 0 0 6px rgba(168,85,247,0.4); }
 
     .ls-tl-sub-content {
-        position: absolute;
-        inset: 0;
+        position: relative;
+        flex: 1;
+        min-width: 0;
         overflow: hidden;
     }
 
@@ -1690,7 +1708,7 @@
     .ls-tl-playhead {
         position: absolute;
         top: 0; bottom: 0;
-        left: 0%;
+        left: 48px;
         z-index: 10;
         transition: left 1s linear;
         pointer-events: none;
