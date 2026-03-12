@@ -582,7 +582,8 @@
                 start: start,
                 end: end,
                 duration: dur,
-                selected: false
+                selected: false,
+                type: 'manual'
             };
             clips.push(clip);
 
@@ -614,38 +615,42 @@
             m.title = '片段 ' + (clip.id + 1) + ' (' + formatTime(clip.start) + ' – ' + formatTime(clip.end) + ')';
             tlMarkers.appendChild(m);
 
-            // 在手动剪辑轨道上添加片段块
+            // 在手动剪辑轨道上添加片段块（可点击预览）
             var seg = document.createElement('div');
             seg.className = 'ls-tl-seg ls-tl-seg--manual';
             seg.style.left = pct + '%';
             seg.style.width = Math.max(widthPct, 0.8) + '%';
             seg.title = '手动 · 片段 ' + (clip.id + 1);
             seg.innerHTML = '<span class="ls-tl-seg-label">片段 ' + (clip.id + 1) + '</span>';
+            seg.dataset.clipId = clip.id;
+            seg.addEventListener('click', function() {
+                var id = parseInt(this.dataset.clipId);
+                var c = clips.find(function(x) { return x.id === id; });
+                if (!c) return;
+                showPreview(c, '片段 ' + (c.id + 1));
+            });
             manualClipContent.appendChild(seg);
         }
 
         // === 自动剪辑模拟 ===
         var autoClipId = 0;
         function startAutoClipSimulation() {
-            // 初始放置几个模拟的自动片段
-            var presets = [
-                { start: 25, end: 45 },
-                { start: 120, end: 155 },
-                { start: 280, end: 310 },
-                { start: 430, end: 470 }
-            ];
-            presets.forEach(function(p) {
-                addAutoClipSegment(p.start, p.end);
-            });
-
-            // 每隔一段时间新增一个自动检测的片段
+            // 不再预置片段，等播放头推进后再逐步生成
+            // 第一个自动片段在30秒后出现，之后每12秒检查一次
             autoClipTimer = setInterval(function() {
                 if (!isMonitoring) return;
-                var total = 600;
-                var start = Math.floor(Math.random() * (total - 40));
-                var dur = Math.floor(Math.random() * 25) + 10;
-                addAutoClipSegment(start, start + dur);
-            }, 15000); // 每15秒模拟一次
+                // 只有已播放超过30秒才开始产生自动片段
+                if (elapsed < 30) return;
+                // 片段结束点不超过已播放时间（留5秒缓冲）
+                var maxEnd = elapsed - 5;
+                if (maxEnd < 15) return;
+                var dur = Math.floor(Math.random() * 20) + 10; // 10~30秒
+                if (maxEnd - dur < 5) return;
+                var end = Math.floor(Math.random() * (maxEnd - dur - 5)) + dur + 5;
+                var start = end - dur;
+                if (start < 0) start = 0;
+                addAutoClipSegment(start, end);
+            }, 12000); // 每12秒检查一次
         }
 
         function addAutoClipSegment(start, end) {
@@ -653,14 +658,48 @@
             var total = 600;
             var pct = (start % total) / total * 100;
             var widthPct = ((end - start) % total) / total * 100;
+            var currentAutoId = autoClipId;
 
+            // 创建 clip 数据并加入 clips 数组
+            var clipDur = end - start;
+            var clip = {
+                id: clips.length,
+                start: start,
+                end: end,
+                duration: clipDur,
+                selected: false,
+                type: 'auto',
+                autoLabel: currentAutoId
+            };
+            clips.push(clip);
+
+            // 时间轴上添加片段块（可点击预览）
             var seg = document.createElement('div');
             seg.className = 'ls-tl-seg ls-tl-seg--auto';
             seg.style.left = pct + '%';
             seg.style.width = Math.max(widthPct, 0.8) + '%';
-            seg.title = '自动 · 精彩 ' + autoClipId + ' (' + formatTime(start) + ' – ' + formatTime(end) + ')';
-            seg.innerHTML = '<span class="ls-tl-seg-label">精彩 ' + autoClipId + '</span>';
+            seg.title = '自动 · 精彩 ' + currentAutoId + ' (' + formatTime(start) + ' – ' + formatTime(end) + ')';
+            seg.innerHTML = '<span class="ls-tl-seg-label">精彩 ' + currentAutoId + '</span>';
+            seg.dataset.clipId = clip.id;
+            seg.addEventListener('click', function() {
+                var id = parseInt(this.dataset.clipId);
+                var c = clips.find(function(x) { return x.id === id; });
+                if (!c) return;
+                var label = c.type === 'auto' ? '精彩 ' + c.autoLabel : '片段 ' + (c.id + 1);
+                showPreview(c, label);
+            });
             autoClipContent.appendChild(seg);
+
+            // 右侧面板添加片段卡片
+            addClipCard(clip);
+
+            // 显示片段生成提示
+            clipAlert.classList.add('active');
+            setTimeout(function() { clipAlert.classList.remove('active'); }, 2000);
+
+            // 更新计数和底部栏
+            clipCount.textContent = clips.length;
+            clipsFooter.style.display = '';
         }
 
         function addClipCard(clip) {
@@ -668,8 +707,14 @@
             var empty = clipList.querySelector('.ls-aside-empty');
             if (empty) empty.remove();
 
+            var isAuto = clip.type === 'auto';
+            var displayName = isAuto ? '精彩 ' + clip.autoLabel : '片段 ' + (clip.id + 1);
+            var typeBadge = isAuto
+                ? '<span class="ls-clip-type-badge ls-clip-type--auto">AI</span>'
+                : '<span class="ls-clip-type-badge ls-clip-type--manual">手动</span>';
+
             var card = document.createElement('div');
-            card.className = 'ls-clip-card';
+            card.className = 'ls-clip-card' + (isAuto ? ' ls-clip-card--auto' : '');
             card.dataset.id = clip.id;
             card.innerHTML =
                 '<div class="ls-clip-check">' +
@@ -680,7 +725,7 @@
                     '<span class="ls-clip-dur">' + formatDuration(clip.duration) + '</span>' +
                 '</div>' +
                 '<div class="ls-clip-info">' +
-                    '<span class="ls-clip-title">片段 ' + (clip.id + 1) + '</span>' +
+                    '<div class="ls-clip-title-row">' + typeBadge + '<span class="ls-clip-title">' + displayName + '</span></div>' +
                     '<span class="ls-clip-time">' + formatTime(clip.start) + ' — ' + formatTime(clip.end) + '</span>' +
                 '</div>' +
                 '<div class="ls-clip-actions">' +
@@ -692,14 +737,21 @@
 
             // Draw thumbnail
             var miniCanvas = card.querySelector('.ls-clip-canvas');
-            drawMiniThumb(miniCanvas);
+            drawMiniThumb(miniCanvas, isAuto);
 
             // Preview handler
-            card.querySelector('.ls-clip-preview').addEventListener('click', function() {
-                var id = parseInt(this.dataset.id);
+            var previewFn = function() {
+                var id = parseInt(card.dataset.id);
                 var c = clips.find(function(x) { return x.id === id; });
                 if (!c) return;
-                showPreview(c, clip.id + 1);
+                var label = c.type === 'auto' ? '精彩 ' + c.autoLabel : '片段 ' + (c.id + 1);
+                showPreview(c, label);
+            };
+            card.querySelector('.ls-clip-preview').addEventListener('click', previewFn);
+            // 点击卡片也可预览
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('.ls-clip-btn') || e.target.closest('.ls-clip-check')) return;
+                previewFn();
             });
 
             // Delete handler
@@ -713,30 +765,45 @@
                     if (clips.length === 0) {
                         clipsFooter.style.display = 'none';
                         clipList.innerHTML = '<div class="ls-aside-empty"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="4" y="8" width="32" height="24" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.3"/><path d="M16 16L26 20L16 24V16Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" opacity="0.3"/></svg><p>暂无片段</p><span>使用入点/出点工具标记直播精彩时刻</span></div>';
+                        tlMarkers.innerHTML = '';
+                        manualClipContent.innerHTML = '';
+                        autoClipContent.innerHTML = '';
                     }
                 }, 250);
             });
         }
 
-        function drawMiniThumb(c) {
+        function drawMiniThumb(c, isAuto) {
             var ctx = c.getContext('2d');
             var grad = ctx.createLinearGradient(0, 0, 120, 68);
-            grad.addColorStop(0, '#0c0c1a');
-            grad.addColorStop(0.5, '#1a1030');
-            grad.addColorStop(1, '#0c0c1a');
+            if (isAuto) {
+                grad.addColorStop(0, '#0a1520');
+                grad.addColorStop(0.5, '#0d1a28');
+                grad.addColorStop(1, '#0a1520');
+            } else {
+                grad.addColorStop(0, '#0c0c1a');
+                grad.addColorStop(0.5, '#1a1030');
+                grad.addColorStop(1, '#0c0c1a');
+            }
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 120, 68);
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillStyle = isAuto ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.1)';
             ctx.beginPath();
             ctx.moveTo(50, 24);
             ctx.lineTo(74, 34);
             ctx.lineTo(50, 44);
             ctx.closePath();
             ctx.fill();
+            if (isAuto) {
+                ctx.fillStyle = 'rgba(6,182,212,0.25)';
+                ctx.font = 'bold 9px Inter';
+                ctx.textAlign = 'right';
+                ctx.fillText('AI', 112, 14);
+            }
         }
 
         // === Preview ===
-        function showPreview(clip, num) {
+        function showPreview(clip, label) {
             var previewCanvas = document.getElementById('previewCanvas');
             var previewEmpty = document.getElementById('previewEmpty');
             var previewLabel = document.getElementById('previewLabel');
@@ -746,7 +813,7 @@
             previewEmpty.style.display = 'none';
             previewCanvas.style.display = 'block';
             previewLabel.style.display = 'flex';
-            previewTitle.textContent = '片段 ' + num;
+            previewTitle.textContent = label;
             previewTime.textContent = formatTime(clip.start) + ' — ' + formatTime(clip.end);
 
             // Draw preview content
@@ -800,7 +867,18 @@
                 c.classList.remove('previewing');
             });
             var activeCard = document.querySelector('.ls-clip-card[data-id="' + clip.id + '"]');
-            if (activeCard) activeCard.classList.add('previewing');
+            if (activeCard) {
+                activeCard.classList.add('previewing');
+                // 滚动到可见区域
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // Highlight active timeline segment
+            document.querySelectorAll('.ls-tl-seg').forEach(function(s) {
+                s.classList.remove('active');
+            });
+            var activeSeg = document.querySelector('.ls-tl-seg[data-clip-id="' + clip.id + '"]');
+            if (activeSeg) activeSeg.classList.add('active');
         }
 
         // === Select All / Clear All ===
@@ -817,6 +895,7 @@
                 clipList.innerHTML = '<div class="ls-aside-empty"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="4" y="8" width="32" height="24" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.3"/><path d="M16 16L26 20L16 24V16Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" opacity="0.3"/></svg><p>暂无片段</p><span>使用入点/出点工具标记直播精彩时刻</span></div>';
                 tlMarkers.innerHTML = '';
                 manualClipContent.innerHTML = '';
+                autoClipContent.innerHTML = '';
             }
         });
         document.getElementById('exportSelectedBtn').addEventListener('click', function() {
@@ -1855,6 +1934,57 @@
     .ls-clip-card.previewing {
         border-color: rgba(168,85,247,0.35);
         background: rgba(168,85,247,0.06);
+    }
+    .ls-clip-card--auto.previewing {
+        border-color: rgba(6,182,212,0.35);
+        background: rgba(6,182,212,0.06);
+    }
+
+    /* 片段类型标签 */
+    .ls-clip-title-row {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .ls-clip-type-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 5px;
+        font-size: 0.5rem;
+        font-weight: 700;
+        border-radius: 3px;
+        letter-spacing: 0.03em;
+        flex-shrink: 0;
+        line-height: 1.4;
+    }
+    .ls-clip-type--auto {
+        color: #06b6d4;
+        background: rgba(6,182,212,0.12);
+        border: 1px solid rgba(6,182,212,0.2);
+    }
+    .ls-clip-type--manual {
+        color: #a855f7;
+        background: rgba(168,85,247,0.12);
+        border: 1px solid rgba(168,85,247,0.2);
+    }
+    .ls-clip-card--auto:hover {
+        border-color: rgba(6,182,212,0.2);
+        background: rgba(6,182,212,0.04);
+    }
+
+    /* 时间轴片段激活态 */
+    .ls-tl-seg.active {
+        z-index: 5;
+    }
+    .ls-tl-seg--auto.active {
+        background: rgba(6,182,212,0.35);
+        border-color: rgba(6,182,212,0.6);
+        box-shadow: 0 0 8px rgba(6,182,212,0.25);
+    }
+    .ls-tl-seg--manual.active {
+        background: rgba(168,85,247,0.38);
+        border-color: rgba(168,85,247,0.6);
+        box-shadow: 0 0 8px rgba(168,85,247,0.25);
     }
 
     /* 预览区信号标识 */
